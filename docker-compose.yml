@@ -1,0 +1,75 @@
+version: '3.8'
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092 
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+    volumes:
+      - /data/kafka:/var/run/docker.sock
+  mongo:
+    container_name:  mongo
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo:/data/db
+  postgres:
+    container_name: postgres
+    image: postgres 
+    ports: 
+      - 2345:2345
+    volumes:
+      - ./data/postgres:/var/lib/postgres/data
+    environment: 
+      - POSTGRES_USER
+  app1: 
+    container_name: app1
+    build: ./app1
+    ports:
+      1234:1234
+    volumes:
+      - ./app1:/app
+    environment:
+      - PORT=1234
+      - POSTGRES_URL=postgres://postgres:postgres@postgres:2345/postgres
+      - KKAFKA_BOOTTSRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC=topic1
+    depends_on:
+      - postgres
+      - kafka
+
+    app2:
+      container_name: app2
+      build: ./app2
+      ports:
+        5678:1234
+      volumes:
+        - ./app2:/app
+      environment:
+        - PORT=5678
+        - MONGO_URL=mongodb://mongo:27017/app2
+        - KKAFKA_BOOTTSRAP_SERVERS=kafka:9092
+        - KAFKA_TOPIC=topic1
+      depends_on:
+        - postgres
+        - kafka
+    
