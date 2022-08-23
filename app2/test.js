@@ -5,3 +5,4 @@ if(a){
 }else{
   console.log('b');
 }
+console.log('clgt');
